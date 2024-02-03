@@ -1,0 +1,48 @@
+#!/bin/sh
+
+PROGRAM=`basename $0`
+
+usage() {
+    echo "Usage: $PROGRAM [up|down percentage]"
+}
+
+brightness_path='/sys/class/backlight/intel_backlight/brightness'
+max_brightness_path='/sys/class/backlight/intel_backlight/max_brightness'
+
+brightness=`cat "$brightness_path"`
+max_brightness=`cat "$max_brightness_path"`
+
+if [ "$#" -eq 0 ]; then
+    echo "`expr "$brightness" \* 100 / "$max_brightness"`%"
+    exit 0
+fi
+
+if [ "$#" -ne 2 -o "$1" != 'up' -a "$1" != 'down' ]; then
+    usage
+    exit 1
+fi
+
+cmd="$1"
+percentage=`expr "$max_brightness" \* "$2" / 100`
+
+up_cmd() {
+    brightness=`expr "$brightness" + "$1"`
+    if [ "$brightness" -gt "$max_brightness" ]; then
+        brightness="$max_brightness"
+    fi
+    echo "$brightness" > "$brightness_path"
+}
+
+down_cmd() {
+    brightness=`expr "$brightness" - "$1"`
+    if [ "$brightness" -lt 0 ]; then
+        brightness=0
+    fi
+    echo "$brightness" > "$brightness_path"
+}
+
+if [ "$cmd" = 'up' ]; then
+    up_cmd "$percentage"
+else
+    down_cmd "$percentage"
+fi
